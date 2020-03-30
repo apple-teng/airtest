@@ -4,68 +4,95 @@ import logging
 from airtest.core.api import *
 
 from poco.drivers.android.uiautomation import AndroidUiautomationPoco
-poco = AndroidUiautomationPoco(use_airtest_input=True, screenshot_each_action=False)
 
+using(r"E:\airTest\airtest\MoreResetMaps.air")
+from MoreResetMaps import *
+using(r"E:\airTest\airtest\EnterQuitDevice.air")
+from EnterQuitDevice import *
+
+
+poco = AndroidUiautomationPoco(use_airtest_input=True, screenshot_each_action=False)
 auto_setup(__file__)
 logging.basicConfig(level=logging.DEBUG)
 
-'''
-=========手机端时区操作==========
-难点：
-设置时区，2种方案
-1.root手机，直接通过命令设置，图像操作只有ecovacsHome  --》root手机失败
-2.图形界面，把所有时区的城市写成列表，循环通过搜索set-text设置  --》可以实现
---已解决
-注意：
-1.app关闭后，时区设置界面是否还在，，是否需要从设置一步步进入
-'''
-
-# timezone_city = ['芝加哥','东京','柏林 (德国)', '巴黎', '伦敦','莫斯科','萨马拉','叶卡捷琳堡','新西伯利亚','克拉斯诺亚尔斯克','阿纳德尔','伯尔尼','安卡拉','阿布扎比']
-
-# # 选择时区
-# # poco(text="时区").click()
-# poco(resourceId='android:id/title',text="选择时区").click()
-
-# # 点击搜索
-# # poco("android:id/search_src_text").click()
-# poco(resourceId='com.android.settings:id/search',desc="搜索").click()
-# # 循环设置时区
-# poco("android:id/search_src_text").set_text(timezone_city[0])
-
-# # 获取对应时区
-# try:
-#     if poco(name="android:id/text1").get_text()==timezone_city[0]:
-# #     poco(text=timezone_city[0]).click()
-#         poco("android:id/text1").click()
-# except poco.exceptions.PocoNoSuchNodeException as e:
-#     logging.info('no timezone found'+e)
-    
-    
-# # 返回主界面
-# # home()
-
-# # 打开ecovacsHome app
-# # start_app('com.eco.global.app')
-
-# # '''
-# # =========app端勿扰+预约设置=============
-# # 1.不在勿扰时间内的（勿扰时间设置的尽量的小），集中测试完，再测试勿扰时间内（勿扰时间设置尽量的大）
-# # 2.注意预约条数的限制，考虑是没测完一条删一条，还是设置teardown
-# # 难点：
-# # 1.时间都是不好输入，需要滑动
-# # '''
-# # 点击“+”,唤出下来框
-# poco(name='com.eco.global.app:id/right').click()
-
-# # 点击“自动预约”
-# poco(name='com.eco.global.app:id/auto_add' , text='预约自动清扫').click()
-
-# # 在当前时间的基础上，下滑来实现1min后的预约
-# '''难点在图像定位不行，元素定位中元素resourceID值一样
-# 1.选择分钟--（采用绝对定位或元素列表），
-# 2.分钟下滑1个--swipe使用函数自定义的“up”
 # '''
-# poco(name='android.widget.NumberPicker').child(name='android:id/numberpicker_input')[1].swipe('up')
+# =========手机端时区操作==========
+# 难点：
+# 设置时区，2种方案
+# 1.root手机，直接通过命令设置，图像操作只有ecovacsHome  --》root手机失败
+# 2.图形界面，把所有时区的城市写成列表，循环通过搜索set-text设置  --》可以实现
+# --已解决
+# 注意：
+# 1.app关闭后，时区设置界面是否还在，，是否需要从设置一步步进入
+# '''
+def set_timezone():
+    timezone_city = ['芝加哥','东京','柏林 (德国)', '巴黎', '伦敦','莫斯科','萨马拉','叶卡捷琳堡','新西伯利亚','克拉斯诺亚尔斯克','阿纳德尔','伯尔尼','安卡拉','阿布扎比']
+
+    # 选择时区
+    poco(text="选择时区").click()
+
+    # 点击搜索
+    poco(desc="搜索").click()
+    # 循环设置时区
+    for city in timezone_city:
+        poco("android:id/search_src_text").set_text(timezone_city[city])
+
+    # 获取对应时区
+    try:
+        if poco(name="android:id/text1").get_text()==timezone_city[0]:
+    #     poco(text=timezone_city[0]).click()
+            poco("android:id/text1").click()
+        else:
+            logging.info(city + 'no timezone found!')
+    finally:
+#         不管找没找到列表中的时区，程序都回到主界面
+        home()
+    
+def start_close_app(action):
+    if action == 'start':
+        # 打开ecovacsHome app
+        start_app('com.eco.global.app')
+        sleep(10)
+    elif action == 'close':
+        # 关闭app
+        stop_app('com.eco.global.app')
+        sleep(5)
+        
+
+
+# '''
+# =========app端勿扰+预约设置=============
+# 1.不在勿扰时间内的（勿扰时间设置的尽量的小），集中测试完，再测试勿扰时间内（勿扰时间设置尽量的大）
+# 2.注意预约条数的限制，考虑是没测完一条删一条，还是设置teardown
+# 难点：
+# 1.时间都是不好输入，需要滑动
+# '''
+def schedule_clean(clean_type):
+    # 点击“+”,唤出下来框
+    poco(name='com.eco.global.app:id/right').click()
+
+    if clean_type == "auto":
+        # 点击“自动预约”
+        poco(name='com.eco.global.app:id/auto_add' , text='预约自动清扫').click()
+
+    elif clean_type == "area":
+         # 点击“区域预约”
+        poco(name='com.eco.global.app:id/area_add' , text='预约区域清扫').click()
+    
+    # 在当前时间的基础上，下滑来实现1min后的预约
+    # '''
+    # 1.选择分钟--（采用绝对定位或元素列表），
+    # 2.分钟下滑1个--swipe使用函数自定义的“up”
+    # '''
+    poco(name='android.widget.NumberPicker').\
+    child(name='android:id/numberpicker_input')[1].swipe('up')
+    
+#     在勿扰模式下，提交保存时会有弹框
+    try:
+        有弹框
+    finally:
+        点击保存
+        
 
 '''
 保存时要注意，勿扰时间保存，是有弹框的
@@ -110,27 +137,46 @@ logging.basicConfig(level=logging.DEBUG)
 # logging.info('区域清扫设置完成')
 
 
-# 关闭app
-# stop_app('com.eco.global.app')
 
-'''
-手机本身操作和app单操作都ok的前提下，有个难点：相互切换
-1.进入设置（name :  android.widget.TextView 
-	       text :  设置 ）
-2.找到时间与日期的设置（由于该项设置不在进入页面的显示范围，
-处理方法：1.滑动页面，但是滑动范围不好确定
-2. TBD）
-'''
+
+# '''
+# 手机本身操作和app单操作都ok的前提下，有个难点：相互切换
+# 1.进入设置（name :  android.widget.TextView 
+# 	       text :  设置 ）
+# 2.找到时间与日期的设置（由于该项设置不在进入页面的显示范围，
+# 处理方法：1.滑动页面，但是滑动范围不好确定
+# 2. TBD）
+# '''
 timezone_element=poco(text="日期和时间")
 def loop_find_timezone():
+    i = 0
     while True:
         if timezone_element.exists():
             timezone_element.click()
             break
+#         设定最多滑动次数（因为系统中只有4个category元素）
+        elif i < 5:
+#             按category坐标来滑动
+            x,y=poco(name='com.android.settings:id/category').get_position()
+            dir=[0,-0.5]
+            poco.swipe([x,y],dir)
+            i+=1
         else:
+            raise PocoNoSuchNodeException
 
+            
+            
+            
+    
+#             
 # 进入设置
-# poco(name='android.widget.TextView',text="设置").click(sleep_interval=5)
+# poco(text="设置").click(sleep_interval=5)
+# loop_find_timezone()
 
-# 找到时间与日期的设置
-poco(name='com.android.settings:id/title',text='日期和时间').click(sleep_interval=3)
+
+# if __name__ == '__main__':
+#     loop_find_timezone()
+#     set_timezone()
+#     start_close_app(start)
+    
+# loop_find_timezone()
