@@ -5,10 +5,10 @@ from airtest.core.api import *
 
 from poco.drivers.android.uiautomation import AndroidUiautomationPoco
 
-using(r"E:\airTest\airtest\MoreResetMaps.air")
-from MoreResetMaps import *
-using(r"E:\airTest\airtest\EnterQuitDevice.air")
-from EnterQuitDevice import *
+# using(r"E:\airTest\airtest\MoreResetMaps.air")
+# from MoreResetMaps import *
+# using(r"E:\airTest\airtest\EnterQuitDevice.air")
+# from EnterQuitDevice import *
 
 
 poco = AndroidUiautomationPoco(use_airtest_input=True, screenshot_each_action=False)
@@ -25,30 +25,79 @@ logging.basicConfig(level=logging.DEBUG)
 # 注意：
 # 1.app关闭后，时区设置界面是否还在，，是否需要从设置一步步进入
 # '''
-def set_timezone():
-    timezone_city = ['芝加哥','东京','柏林 (德国)', '巴黎', '伦敦','莫斯科','萨马拉','叶卡捷琳堡','新西伯利亚','克拉斯诺亚尔斯克','阿纳德尔','伯尔尼','安卡拉','阿布扎比']
 
+timezone_city = ['芝加哥','东京','柏林 (德国)', '巴黎', '伦敦','莫斯科','萨马拉','叶卡捷琳堡','新西伯利亚','克拉斯诺亚尔斯克','阿纳德尔','伯尔尼','安卡拉','阿布扎比']
+
+def set_timezone(city):    
     # 选择时区
-    poco(text="选择时区").click()
+    poco(text="时区").click()
 
     # 点击搜索
-    poco(desc="搜索").click()
-    # 循环设置时区
-    for city in timezone_city:
-        poco("android:id/search_src_text").set_text(timezone_city[city])
+    poco(desc="搜索查询").click()
 
-    # 获取对应时区
+    # 搜索框中填写城市
+    poco("android:id/search_src_text").set_text(city)
+    #对搜索框中的结果进行处理
     try:
-        if poco(name="android:id/text1").get_text()==timezone_city[0]:
-    #     poco(text=timezone_city[0]).click()
+        # 搜索结果符合
+        if city in poco(name="android:id/text1").get_text():
+            # 设置时区
             poco("android:id/text1").click()
+            sleep(2)
+            '''
+            时区设置完毕，切换ecovacsHome进行操作
+            '''
         else:
             logging.info(city + 'no timezone found!')
     finally:
+        pass
 #         不管找没找到列表中的时区，程序都回到主界面
-        home()
+#         home()
+
     
-def start_close_app(action):
+
+# '''
+# 手机本身操作和app单操作都ok的前提下，有个难点：相互切换
+# 1.进入设置（name :  android.widget.TextView 
+# 	       text :  设置 ）
+# 2.找到时间与日期的设置（由于该项设置不在进入页面的显示范围，
+# 处理方法：1.滑动页面，但是滑动范围不好确定
+# 2. TBD）
+# '''
+timezone_element=poco(text="日期和时间")
+def loop_find_timezone():
+    # 前提：保证程序开始时时处于home界面
+    home()
+    # 进入设置
+    poco(name="设置",text="设置").click(sleep_interval=5)
+    # 为进入系统，下滑
+    poco(name='com.android.settings:id/category').swipe('up')
+    poco(text="系统").click(sleep_interval=5)
+    i = 0
+    while True:
+        if timezone_element.exists():
+            timezone_element.click()
+            break
+#         设定最多滑动次数（因为系统中只有4个category元素）
+        elif i < 5:
+#             按category坐标来滑动
+            x,y=poco.get_position()
+            dir=[0,-0.5]
+            poco.swipe([x,y],dir)
+            i+=1
+        else:
+            raise PocoNoSuchNodeException
+   
+    
+    
+
+def start_close_app(action='start'):
+    '''
+    打开关闭app
+    arg：action(obj:str)
+        -start(default)
+        -close
+    '''    
     if action == 'start':
         # 打开ecovacsHome app
         start_app('com.eco.global.app')
@@ -68,6 +117,12 @@ def start_close_app(action):
 # 1.时间都是不好输入，需要滑动
 # '''
 def schedule_clean(clean_type):
+    '''
+    设置预约
+    arg:clean_type(obj:str)
+        -auto
+        -area
+    '''
     # 点击“+”,唤出下来框
     poco(name='com.eco.global.app:id/right').click()
 
@@ -87,11 +142,11 @@ def schedule_clean(clean_type):
     poco(name='android.widget.NumberPicker').\
     child(name='android:id/numberpicker_input')[1].swipe('up')
     
-#     在勿扰模式下，提交保存时会有弹框
-    try:
-        有弹框
-    finally:
-        点击保存
+# #     在勿扰模式下，提交保存时会有弹框
+#     try:
+#         有弹框
+#     finally:
+#         点击保存
         
 
 '''
@@ -139,44 +194,16 @@ def schedule_clean(clean_type):
 
 
 
-# '''
-# 手机本身操作和app单操作都ok的前提下，有个难点：相互切换
-# 1.进入设置（name :  android.widget.TextView 
-# 	       text :  设置 ）
-# 2.找到时间与日期的设置（由于该项设置不在进入页面的显示范围，
-# 处理方法：1.滑动页面，但是滑动范围不好确定
-# 2. TBD）
-# '''
-timezone_element=poco(text="日期和时间")
-def loop_find_timezone():
-    i = 0
-    while True:
-        if timezone_element.exists():
-            timezone_element.click()
-            break
-#         设定最多滑动次数（因为系统中只有4个category元素）
-        elif i < 5:
-#             按category坐标来滑动
-            x,y=poco(name='com.android.settings:id/category').get_position()
-            dir=[0,-0.5]
-            poco.swipe([x,y],dir)
-            i+=1
-        else:
-            raise PocoNoSuchNodeException
 
             
-            
-            
-    
-#             
-# 进入设置
-# poco(text="设置").click(sleep_interval=5)
-# loop_find_timezone()
+           
 
-
-# if __name__ == '__main__':
-#     loop_find_timezone()
-#     set_timezone()
-#     start_close_app(start)
-    
-# loop_find_timezone()
+if __name__ == '__main__':
+    # 循环设置时区
+    for city in timezone_city: 
+        loop_find_timezone()
+        set_timezone(city)
+        sleep(5)
+        home()
+        start_close_app('start')
+        # 进入设备-更多
