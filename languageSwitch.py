@@ -1,10 +1,13 @@
 # -*- encoding=utf8 -*-
 __author__ = "xiaomei.teng"
 import logging
+
 from airtest.core.api import *
 
 from poco.drivers.android.uiautomation import AndroidUiautomationPoco
-
+import sys
+sys.path.append("C:\Python36\Lib\site-packages\poco")
+import exceptions
 # using(r"E:\airTest\airtest\MoreResetMaps.air")
 # from MoreResetMaps import *
 # using(r"E:\airTest\airtest\EnterQuitDevice.air")
@@ -112,8 +115,20 @@ def set_schedule_clean(clean_type):
     
     '''
     # 点击”工作预约“
-    poco(text="工作预约").click()
-    sleep(5)
+    while True:
+        poco(text="工作预约").click()
+        try:
+            poco(name='android.view.ViewGroup').wait_for_appearance()
+        except:
+            pass
+        else:
+            if poco(text="知道了").exists():
+                poco(text="知道了").click()
+                log("信息获取超时，请退出重试 ")
+                continue
+            else:
+                break
+            
     # 点击“+”,唤出下来框
     poco(name='com.eco.global.app:id/right').click()
     if clean_type == "auto":
@@ -134,24 +149,24 @@ def set_schedule_clean(clean_type):
     poco(name='android.widget.NumberPicker').\
     child(name='android:id/numberpicker_input')[1].swipe([0,-0.2])
     sleep(2)
-    # #####保存预约设置##########
-    # 在勿扰模式下，提交保存时会有弹框
+    # 保存预约设置    
     pop_message="请避开这一时间段并预留充足时间"
     try:
         poco(text="保存").click(sleep_interval=3)
-        if pop_message in poco(name='com.eco.global.app:id/tv_content').get_text():
+        # 在勿扰模式下，提交保存时会有弹框
+        if poco(name='com.eco.global.app:id/tv_content').exists():
             # 有弹窗，点击"仍然设定"
             poco(text="仍然设定").click()
             # 修改全局变量disturb_mode，改为在勿扰时间内
             global disturb_mode
             disturb_mode = 1
-            sleep(2)
+            sleep(5)
     finally:
         # 无论成功失败，返回更多页面
         poco(name='com.eco.global.app:id/title_back').click()
         if poco(name='com.eco.global.app:id/titleContent').get_text() == "更多":
             log("当前页面：更多")
-        return disturb_mode
+#         return disturb_mode
 
 
         
@@ -171,7 +186,8 @@ def teardown_schedule(clean_type):
     sleep(5)
     try:        
         # 点击自动清扫的title
-        poco(name='com.eco.global.app:id/tv_tab_title',text=clean_text[clean_type]).click()
+        poco(name='com.eco.global.app:id/tv_tab_title',\
+                 text=clean_text[clean_type]).click()
         if poco(name=schdule_item, text=clean_text[clean_type]).exists():
 #             左滑，滑出删除按钮
             poco(name=schdule_item, text=clean_text[clean_type]).swipe([-0.5, 0])
@@ -227,12 +243,12 @@ def check_effect_of_schedule():
     else:
         try:
             Template(r"tpl1585822026085.png", record_pos=(0.01, 0.278), resolution=(720, 1440)).wait_for_appearance(180)
-        except PocoTargetTimeout as e:
+        except exceptions.PocoTargetTimeout:
             popmsg_flag = 1
             log("勿扰时间段外，主机响应预约，没有弹出弱消息")
-         try:
+        try:                      
             Template(r"tpl1585822379315.png", record_pos=(0.003, 0.753), resolution=(720, 1440)).wait_for_appearance(5)
-        except PocoTargetTimeout as e:
+        except PocoTargetTimeout:
             deboot_flag = 1
             log("勿扰时间段外主机没有运行")
         return popmsg_flag,deboot_flag   
@@ -265,8 +281,9 @@ def check_effect_of_schedule():
 #         # 进入设备-更多
 #         set_schedule_clean(auto)
 #         check_schdule(auto)
-set_schedule_clean('auto')
-set_schedule_clean('area')
-
-teardown_schdule('area')
-# check_schedule('auto')
+# set_schedule_clean('auto')
+# set_schedule_clean('area')
+x,y=check_effect_of_schedule()
+log(x,y)
+# teardown_schedule('area')
+teardown_schedule('auto')
